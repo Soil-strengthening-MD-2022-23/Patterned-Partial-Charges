@@ -4,7 +4,7 @@
 - Constant $nVT$ ensemble
   - $n=27000$
   - $T=0.8$
-- Polyer beads (30 per chain) uniformly at constant charge of $q_p=-1$
+- Polymer beads (30 per chain) where every $n$th bead is charged
 - Univalent counterions
 - LJ-potential $\varepsilon=5.0$
 
