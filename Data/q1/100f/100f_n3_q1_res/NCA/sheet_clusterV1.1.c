@@ -17,7 +17,7 @@ struct particle{
 #define TRUE 1;
 
 const int N_CHAIN=9000;
-const int N_FILLER=19*25;
+const int N_FILLER=19*100;
 const int SIZE_CHAIN=30;
 const int SIZE_FILLER=19;
 const int TYPECHAIN=2;

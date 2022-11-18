@@ -17,11 +17,11 @@ struct particle{
 #define TRUE 1;
 
 const int N_CHAIN=9000;
-const int N_FILLER=19*25;
+const int N_FILLER=19*50;
 const int SIZE_CHAIN=30;
 const int SIZE_FILLER=19;
 const int TYPECHAIN=2;
-const int TYPESTICKER=6; //changed to represent charged monomers
+const int TYPESTICKER=6;
 const int TYPESHEET=4;
 const double CUTOFF = 1.12;
 const int CLUSTERSTART = 0;//start calculating after reading 50 times,100,000*20=2,000,000
