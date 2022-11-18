@@ -1,0 +1,188 @@
+read_restart attract.restart
+
+#-------------------system defination------------------
+
+pair_style hybrid/overlay lj/cut 2.5 coul/long 2.5
+pair_modify pair lj/cut shift yes
+pair_coeff * * lj/cut 1.0 1.0 2.5
+pair_coeff 4 6 lj/cut 1.0 1.0 2.5
+pair_coeff 3*6 3 coul/long
+pair_coeff 3*6 4 coul/long
+pair_coeff 3*6 5 coul/long
+pair_coeff 3*6 6 coul/long
+
+fix pt exc nvt temp 0.8 0.8 0.5
+fix ri filler rigid/nvt molecule temp 0.8 0.8 0.5
+
+neigh_modify every 1 delay 0 exclude molecule/inter filler
+thermo 10000
+thermo_style custom step temp press vol
+kspace_style pppm 0.0001
+
+write_data para.data pair ij
+#---------------system defination ends-----------------
+
+run 1000000
+
+reset_timestep 0 
+timestep 0.005
+
+#------------------STARTING TESTS--------------------#
+#--------------------GREEN KUBO----------------------#
+
+variable pxy equal pxy
+variable pxz equal pxz
+variable pyz equal pyz
+variable s equal 1
+fix SS1 all ave/correlate $s 1000 10000 v_pxy v_pxz v_pyz type auto &
+	file SOSt.dat ave running 
+
+#---------------------------------Green Kubo 2------------------------------------#
+
+variable stwo equal 50
+fix SS2 all ave/correlate ${stwo} 4000 200000 v_pxy v_pxz v_pyz type auto &
+	file Sauto.dat ave running 
+
+#--------------------isometric heat capacity-----------------
+
+variable E equal etotal
+variable sqE equal v_E*v_E
+fix Cp all print 10 "$E   ${sqE}" file heat_cap.txt screen no
+
+#--------------------------Mean Square Displacements------------------------------#
+
+compute mschainA1 polyA msd
+compute mschainA2 polyA msd com yes
+compute mscounter1 counterions msd
+compute mscounter2 counterions msd com yes
+compute msfiller1 filler msd
+compute msfiller2 filler msd com yes
+compute mswater1 water msd
+compute mswater2 water msd com yes
+
+variable msdcA1 equal c_mschainA1[4]
+variable msdcA2 equal c_mschainA2[4]
+variable msdcoun1 equal c_mscounter1[4]
+variable msdcoun2 equal c_mscounter2[4]
+variable msdfiller1 equal c_msfiller1[4]
+variable msdfiller2 equal c_msfiller2[4]
+variable msdwater1 equal c_mswater1[4]
+variable msdwater2 equal c_mswater2[4]
+
+fix msd1 all print 10 "${msdcA1}" file msd_chain_A.txt screen no
+fix msd2 all print 10 "${msdcA2}" file msd_chain_NoDrift_A.txt screen no
+fix msd3 all print 10 "${msdcoun1}" file msd_counterions.txt screen no
+fix msd4 all print 10 "${msdcoun2}" file msd_counterions_NoDrift.txt screen no
+fix msd5 all print 10 "${msdfiller1}" file msd_fillers.txt screen no
+fix msd6 all print 10 "${msdfiller2}" file msd_fillers_NoDrift.txt screen no
+fix msd7 all print 10 "${msdwater1}" file msd_water.txt screen no
+fix msd8 all print 10 "${msdwater2}" file msd_water_NoDrift.txt screen no
+
+compute cA polyA chunk/atom molecule
+compute chainA polyA msd/chunk cA
+variable msdcmA equal ave(c_chainA[4])
+fix msd9 all print 10 "${msdcmA}" file msd_com_chain_A.txt screen no
+
+#------------------------------Radial Distribution--------------------------------#
+
+compute rdfillerA all rdf 50 4 6
+compute rdfillerpoly all rdf 50 4 2
+compute rdAcounterion all rdf 50 2 3
+compute rdstickercounterion all rdf 50 6 3
+compute rdfillercounterion all rdf 50 4 3
+compute rdfillerfiller all rdf 50 4 4
+compute rdcounterioncounterion all rdf 50 3 3
+
+compute aa all rdf 50 4 5
+compute bb all rdf 50 2 5
+compute cc all rdf 50 6 5
+
+fix rdfiA all ave/time 10 100 10000 c_rdfillerA[*] file tmpFiller_A.rdf mode vector ave running 
+fix rdfilpoly all ave/time 10 100 10000 c_rdfillerpoly[*] file tmpFiller_Poly.rdf mode vector ave running 
+fix rdAcoun all ave/time 10 100 10000 c_rdAcounterion[*] file tmpA_Counterion.rdf mode vector ave running
+fix rdstickcoun all ave/time 10 100 10000 c_rdstickercounterion[*] file tmpSticker_Counterion.rdf mode vector ave running
+fix rdficoun all ave/time 10 100 10000 c_rdfillercounterion[*] file tmpFiller_Counterion.rdf mode vector ave running 
+fix rdfilfil all ave/time 10 100 10000 c_rdfillerfiller[*] file tmpFiller_Filler.rdf mode vector ave running 
+fix rdcouncoun all ave/time 10 100 10000 c_rdcounterioncounterion[*] file tmpCounterion_Counterion.rdf mode vector ave running
+
+fix rdaa all ave/time 10 100 10000 c_aa[*] file tmpFiller_Salt.rdf mode vector ave running
+fix rdbb all ave/time 10 100 10000 c_bb[*] file tmpPoly_Salt.rdf mode vector ave running
+fix rdcc all ave/time 10 100 10000 c_cc[*] file tmpSticker_Salt.rdf mode vector ave running
+
+#-------------------------------Radius of Gyration--------------------------------#
+
+compute gyrA polyA gyration
+fix rgnetA all ave/time 100 100 10000 c_gyrA file gyrat_A.txt mode scalar ave running
+
+compute permA polyA gyration/chunk cA
+fix rgmolA all ave/time 100 100 10000 c_permA file gmol_A.txt mode vector ave running 
+
+#------------------------Running All The Above Tests------------------------------#
+
+thermo_style custom step temp press pe ke epair ebond etotal
+thermo 10000
+dump 1 chain  custom 50000 chains_after.lammpstrj id mol type x y z 
+dump 2 filler custom 50000 filler_after.lammpstrj id mol type x y z 
+dump 3 water  custom 50000 water_after.lammpstrj  id mol type x y z
+dump 4 counterions  custom 50000 counterions_after.lammpstrj  id mol type x y z
+dump 5 salt custom 50000 salt_after.lammpstrj  id mol type x y z
+run 6000000
+write_restart restart_aftertest.restart
+
+#----------------Turn off all fixes, dumps in order to test Shear-----------------#
+
+unfix SS1
+unfix SS2
+unfix Cp
+unfix msd1
+unfix msd2
+unfix msd3
+unfix msd4
+unfix msd5
+unfix msd6
+unfix msd7
+unfix msd8
+unfix msd9
+unfix rdfiA
+unfix rdfilpoly
+unfix rdAcoun
+unfix rdstickcoun
+unfix rdficoun
+unfix rdfilfil
+unfix rdcouncoun
+unfix rdaa
+unfix rdbb
+unfix rdcc
+unfix rgnetA
+unfix rgmolA
+
+#------------------------------true shear, elongation-----------------------------#
+
+thermo_style custom step lx ly lz press pxx pyy pzz pe temp
+thermo 10
+fix 2 all deform 1 x erate 0.40 y volume z volume units box 
+
+compute epair all pe pair
+compute ebond all pe bond
+compute epot all pe
+compute ekine all ke
+compute vpre all pressure thermo_temp virial
+
+variable s_xx  equal c_vpre[1] 
+variable s_yy  equal c_vpre[2]
+variable s_zz  equal c_vpre[3]
+variable n_stress  equal "v_s_xx-0.5*(v_s_yy+v_s_zz)"
+run 100
+unfix 2
+
+fix str_viral all print 10 "${s_xx}  ${s_yy}  ${s_zz}  ${n_stress} " file stress.out screen no
+
+variable e1 equal c_epair
+variable e2 equal c_ebond
+variable e3 equal c_epot
+variable e4 equal c_ekine
+fix energies all print 10 "${e1} ${e2} ${e3} ${e4}" file energy.txt screen no
+
+thermo 10000
+run 100000
+

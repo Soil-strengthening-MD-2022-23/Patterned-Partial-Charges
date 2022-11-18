@@ -1,0 +1,112 @@
+#---------------------------------------------
+units lj
+boundary p p p
+atom_style full
+read_data input.data
+
+group polyA type 2 
+group sticker type 6
+group counterions type 3
+group chain	type 2 6  
+group filler type 4
+group water	type 1
+group salt type 5
+group exc type 1 2 3 5 6
+
+mass 1 1.0
+mass 2 1.0
+mass 3 1.0
+mass 4 1.0
+mass 5 1.0
+mass 6 1.0
+
+#---------------------------------------------
+
+variable prefact equal ramp(10,300)
+pair_style soft 2.5 
+pair_coeff * * 10.0 1.4
+fix change all adapt 1 pair soft a * * v_prefact
+bond_style fene 
+bond_coeff 1 30.0 1.5 1.0 1.0
+special_bonds fene
+
+#---------------------------------------------
+
+velocity all create 0.8 818185 dist gaussian
+
+fix pt exc nvt temp 0.8 0.8 0.5 
+fix ri filler rigid/nvt molecule temp 0.8 0.8 0.5
+
+#---------------------------------------------
+
+timestep 0.005
+neigh_modify every 1 delay 0 exclude molecule/inter filler
+thermo 10000
+thermo_style custom step temp press etotal vol 
+
+dump 1 chain  custom 100000 chains_before.lammpstrj id mol type x y z 
+dump 2 filler custom 100000 filler_before.lammpstrj id mol type x y z 
+dump 3 water  custom 100000 water_before.lammpstrj  id mol type x y z
+dump 4 counterions  custom 100000 counterions_before.lammpstrj  id mol type x y z
+dump 5 salt custom 100000 salt_before.lammpstrj  id mol type x y z
+
+#----calculate the density/number value "BEFORE"-----
+compute par exc chunk/atom bin/1d z lower 1.0
+fix allDensity exc ave/chunk 50 500 1000000 par density/number ave running file density_before.txt
+
+run 2000000
+unfix change
+#---------------------------------------------
+
+pair_style lj/cut 2.5 
+pair_coeff * * 1.0 1.0 2.5
+pair_coeff 4 4 1.0 1.0 1.12
+
+unfix pt
+fix pt exc npt iso 0.02 0.02 0.05 temp 0.8 0.8 0.5
+
+restart 100000 record1.equil  record2.equil
+write_data para.data pair ij
+run 5000000 
+write_restart equil.restart
+
+#---------------------------------------------
+undump 1
+undump 2
+undump 3
+undump 4
+undump 5
+unfix allDensity
+unfix pt
+#---------------------------------------------
+
+fix pt exc nvt temp 0.8 0.8 0.5
+fix allDensity exc ave/chunk 50 500 1000000 par density/number ave running file density_equi.txt  
+
+set type 6 charge -1.0
+set type 3 charge 1.0
+set type 5 charge -1.0
+set type 4 charge 1.0
+
+pair_style hybrid/overlay lj/cut 2.5 coul/long 2.5
+pair_modify pair lj/cut shift yes
+pair_coeff * * lj/cut 1.0 1.0 2.5
+pair_coeff 4 6 lj/cut 1.0 1.0 2.5
+pair_coeff 3*6 3 coul/long
+pair_coeff 3*6 4 coul/long
+pair_coeff 3*6 5 coul/long
+pair_coeff 3*6 6 coul/long 
+
+kspace_style pppm 0.0001
+write_data parameters.data pair ij
+
+dump 1 chain  custom 50000 chains_equi.lammpstrj id mol type x y z 
+dump 2 filler custom 50000 filler_equi.lammpstrj id mol type x y z 
+dump 3 water  custom 50000 water_equi.lammpstrj  id mol type x y z
+dump 4 counterions  custom 50000 counterions_equi.lammpstrj  id mol type x y z
+dump 5 salt custom 50000 salt_equi.lammpstrj  id mol type x y z
+
+run 5000000
+write_restart attract.restart
+
+
