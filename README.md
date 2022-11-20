@@ -1,4 +1,4 @@
-# Coulombic-LJ
+# Patterned Partial Charges
 
 ### Initialization Parameters
 - Constant $nVT$ ensemble
