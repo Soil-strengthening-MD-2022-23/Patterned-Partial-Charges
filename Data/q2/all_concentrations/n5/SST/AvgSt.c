@@ -3,8 +3,8 @@
 
 main(){
   FILE *in,*out;
-  in=fopen("q2_stress.txt","r");
-  out=fopen("q2_St_avg.txt","w");
+  in=fopen("q2_n5_stress.txt","r");
+  out=fopen("q2_n5_St_avg.txt","w");
   float gt[10001][5];
   float sum[5],buff[10001];
   int i,j;
