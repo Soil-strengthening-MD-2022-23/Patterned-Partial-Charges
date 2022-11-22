@@ -6,7 +6,7 @@
   - $T=0.8$
 - Polymer beads (30 per chain) where every $n$th bead is charged
 - Univalent counterions
-- LJ-potential $\varepsilon=5.0$
+- LJ-potential $\varepsilon=1.0$
 
 ### System Variables
 - Uniform 19-bead disk-shaped filler bead charge $q=q_f$
