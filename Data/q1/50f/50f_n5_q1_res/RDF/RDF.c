@@ -30,8 +30,8 @@ main()
   int buf1,buf2;
   FILE *data;
   FILE *output;
-  data=fopen("tmpSticker_Counterion.rdf","r");
-  output=fopen("radialSticker_Counterion.txt","w");
+  data=fopen("tmpFiller_Counterion.rdf","r");
+  output=fopen("radialFiller_Counterion.txt","w");
 
   int c;
   cleartitle(3,data);
